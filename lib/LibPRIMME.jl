@@ -1,5 +1,6 @@
 module LibPRIMME
-
+using PRIMME_jll
+const libprimme = PRIMME_jll.libprimme
 to_c_type(t::Type) = t
 to_c_type_pairs(va_list) = map(enumerate(to_c_type.(va_list))) do (ind, type)
     :(va_list[$ind]::$type)
@@ -791,7 +792,7 @@ struct primme_svds_stats
     lockingIssue::Int64
 end
 
-mutable struct primme_svds_params
+struct primme_svds_params
     primme::primme_params
     primmeStage2::primme_params
     m::Int64
@@ -839,7 +840,6 @@ mutable struct primme_svds_params
     monitor::Ptr{Cvoid}
     queue::Ptr{Cvoid}
     profile::Ptr{Cchar}
-    primme_svds_params() = new()
 end
 
 @enum primme_svds_params_label::UInt32 begin
@@ -1151,7 +1151,7 @@ void primme_svds_initialize(primme_svds_params *primme_svds);
 ```
 """
 function primme_svds_initialize(primme_svds)
-    ccall((:primme_svds_initialize, libprimme), Cvoid, (Ptr{primme_svds_params},), primme_svds)
+    ccall((:primme_svds_initialize, libprimme), Cvoid, (Ref{primme_svds_params},), primme_svds)
 end
 
 """
@@ -1262,23 +1262,21 @@ const PRIMME_VERSION_MAJOR = 3
 
 const PRIMME_VERSION_MINOR = 2
 
-const PRIMME_HALF = __fp16
+const PRIMME_HALF = Float16
 
 # Skipping MacroDefinition: PRIMME_QUAD double long
 
 # Skipping MacroDefinition: PRIMME_COMPLEX_HALF struct _primme_complex_half
 
-const PRIMME_COMPLEX_FLOAT = Float32(complex)
+const PRIMME_COMPLEX_FLOAT = ComplexF32 
 
-const PRIMME_COMPLEX_DOUBLE = Float64(complex)
+const PRIMME_COMPLEX_DOUBLE = ComplexF64
 
 # Skipping MacroDefinition: PRIMME_COMPLEX_QUAD long double complex
 
-const PRIMME_INT = int64_t
+const PRIMME_INT = Int64
 
-const PRIMME_INT_P = PRId64
-
-const PRIMME_INT_MAX = INT64_MAX
+const PRIMME_INT_MAX = typemax(Int64)
 
 const PRIMME_UNEXPECTED_FAILURE = -1
 
