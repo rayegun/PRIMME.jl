@@ -791,7 +791,7 @@ struct primme_svds_stats
     lockingIssue::Int64
 end
 
-struct primme_svds_params
+mutable struct primme_svds_params
     primme::primme_params
     primmeStage2::primme_params
     m::Int64
@@ -839,6 +839,7 @@ struct primme_svds_params
     monitor::Ptr{Cvoid}
     queue::Ptr{Cvoid}
     profile::Ptr{Cchar}
+    primme_svds_params() = new()
 end
 
 @enum primme_svds_params_label::UInt32 begin
