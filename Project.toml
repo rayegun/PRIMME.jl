@@ -10,11 +10,6 @@ PRIMME_jll = "9916bc9e-ef43-57a6-9be0-2f3f923f8145"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
-Accessors = "0.1.39"
-LinearAlgebra = "1.9.0"
-PRIMME_jll = "3.2.0"
-SparseArrays = "1.9.0"
-julia = "1.9"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
