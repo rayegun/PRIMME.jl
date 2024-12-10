@@ -10,11 +10,12 @@ export LibPRIMME
 function matrixMatvecSA(x, ldx, y, ldy, blockSize, transpose, params, ierr)
     params = unsafe_load(params)
     blockSize = unsafe_load(blockSize)
-    X = unsafe_wrap(Array, Ptr{Float64}(x), convert.(Int, (params.nLocal, blockSize)))
-    Y = unsafe_wrap(Array, Ptr{Float64}(y), convert.(Int, (params.mLocal, blockSize)))
+    transpose = !iszero(unsafe_load(transpose))
+    X = unsafe_wrap(Array, Ptr{Float64}(x), convert.(Int, (!transpose ? params.nLocal : params.mLocal, blockSize)))
+    Y = unsafe_wrap(Array, Ptr{Float64}(y), convert.(Int, (!transpose ? params.mLocal : params.nLocal, blockSize)))
     A = unsafe_pointer_to_objref(convert(Ptr{SparseMatrixCSC{Float64, Int64}}, params.matrix))[]
     try
-        if iszero(unsafe_load(transpose))
+        if !transpose
             mul!(Y, A, X)
         else
             mul!(Y, A', X)
@@ -22,6 +23,7 @@ function matrixMatvecSA(x, ldx, y, ldy, blockSize, transpose, params, ierr)
     catch e
         println(e)
         unsafe_store!(ierr, 117)
+        return nothing
     end
     unsafe_store!(ierr, 0)
     return nothing
@@ -73,7 +75,7 @@ function solve!(s::Solver, svals, svecs, resNorms; largest = true)
         s.target = LP.primme_svds_smallest
     end
     retcode = LP.dprimme_svds(svals, svecs, resNorms, s.params)
-    return svals, retcode
+    return svals, svecs, resNorms, retcode
 end
 function solve!(s::Solver, nvals = s.svals; largest = true)
     if nvals != s.svals
@@ -83,9 +85,13 @@ function solve!(s::Solver, nvals = s.svals; largest = true)
     svecs = Matrix{eltype(s.A[])}(undef, prod(size(s.A[])), nvals)
     resNorms = zeros(nvals)
     retcode = solve!(s, svals, svecs, resNorms; largest)
-    return svals, retcode
+    return svals, svecs, resNorms, retcode
 end
 
+function solve(A::AbstractArray, nvals = 6; largest = true)
+    S = Solver(A, nvals)
+    return (solve!(S)..., S.stats.numMatvecs, S.stats.numOuterIterations)
+end
 function Base.getproperty(s::Solver, name::Symbol)
     if name ∈ fieldnames(Solver)
         return getfield(s, name)
@@ -96,6 +102,9 @@ end
 function Base.setproperty!(s::Solver, name::Symbol, x)
     if name ∈ fieldnames(Solver)
         setfield!(s, :fresh, true)
+        if name == :svals
+            x = Cint(x)
+        end
         return setfield!(s, name, x)
     else
         params = s.params[]
